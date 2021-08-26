@@ -1,0 +1,27 @@
+{
+  "name": "metavault",
+  "version": "1.0.0",
+  "description": "Simple idea: build on top of the base **covered call**, **put selling**, **options buying** ribbon vaults to create innovative vaults, and get a **cut of the fees**!",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ribbon-finance/metavault.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ribbon-finance/metavault/issues"
+  },
+  "homepage": "https://github.com/ribbon-finance/metavault#readme",
+  "devDependencies": {
+    "hardhat": "^2.6.1",
+    "prettier": "2.3.2"
+  },
+  "dependencies": {
+    "prettier-plugin-solidity": "^1.0.0-beta.17"
+  }
+}

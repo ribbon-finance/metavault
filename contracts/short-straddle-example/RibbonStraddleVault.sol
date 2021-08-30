@@ -6,7 +6,6 @@ import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
-import {OptionsMetaVaultStorage} from "./MetaOptionsVaultStorage.sol";
 import {VaultLifecycle} from "../V2/libraries/VaultLifecycle.sol";
 import {Vault} from "../V2/libraries/Vault.sol";
 import {ShareMath} from "../V2/libraries/ShareMath.sol";
@@ -15,7 +14,7 @@ import {IRibbonVault} from "../V2/interfaces/IRibbonVault.sol";
 import {IRibbonOptionsVault} from "../V2/interfaces/IRibbonOptionsVault.sol";
 import {RibbonVaultBase} from "../V2/base/RibbonVaultBase.sol";
 
-contract RibbonStraddleVault is RibbonVaultBase, OptionsMetaVaultStorage {
+contract RibbonStraddleVault is RibbonVaultBase {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
     using ShareMath for Vault.DepositReceipt;
@@ -30,6 +29,9 @@ contract RibbonStraddleVault is RibbonVaultBase, OptionsMetaVaultStorage {
      ***********************************************/
 
     address public immutable USDC;
+
+    IRibbonVault public putSellingVault;
+    IRibbonVault public callSellingVault;
 
     /************************************************
      *  CONSTRUCTOR & INITIALIZATION

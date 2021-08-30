@@ -10,5 +10,4 @@ Example Vaults:
 4. Use yields from delta neutral basis trading on [lemma.finance](https://medium.com/coinmonks/earning-defi-yield-via-basis-trading-379d1d5e7207) to buy call options on delta vault or directly bid on gnosis
 5. Auto-purchase options from lending returns using delta vaults to gain market exposure (flavor of [Principal protected notes](https://www.investopedia.com/terms/p/principalprotectednote.asp) where instead of ATM call option you buy OTM call option)
 
-
-Credits to [Vadym](https://twitter.com/0x_vadym) for some of these ideas
+A more comprehensive list can be found in this nice [thread by vadym](https://twitter.com/0x_vadym/status/1422257780891729921).

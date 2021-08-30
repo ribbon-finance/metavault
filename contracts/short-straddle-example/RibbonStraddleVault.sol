@@ -98,6 +98,7 @@ contract RibbonStraddleVault is RibbonVaultBase {
      * @notice Completes a scheduled withdrawal from a past round. Uses finalized pps for the round
      */
     function completeWithdraw() public override nonReentrant {
+        // TODO: CONVERT BACK SOME ETH TO USDC IN CASE?
         putSellingVault.completeWithdraw();
         callSellingVault.completeWithdraw();
         super.completeWithdraw();
@@ -162,6 +163,9 @@ contract RibbonStraddleVault is RibbonVaultBase {
         internal
         returns (uint256)
     {
+        // TODO: FIGURE OUT FEE COLLECTION
+        // (funds will be both in eth and usdc for covered and put selling vaults respectively)
+
         (uint256 performanceFeeInAsset, , uint256 vaultFee) = VaultLifecycle
             .getVaultFees(
                 vaultState,
@@ -189,10 +193,10 @@ contract RibbonStraddleVault is RibbonVaultBase {
         uint256 lockedBalance = _rollVault();
 
         vaultState.lockedAmount = uint104(lockedBalance);
-        // require that rolling before underlying vaults
-        // convert some usdc to eth for covered call vault
-        // deposit new funds into put selling / call selling vaults
-        // emit event
+
+        // TODO: REQUIRE ROLLING BEFORE UNDERLYING VAULTS
+        // TODO: CONVERT SOME USDC TO ETH FOR COVERED CALL VAULT (using uni / sushi / etc)
+        // TODO: DEPOSIT NEW FUNDS INTO VAULTS
     }
 
     /************************************************
@@ -204,7 +208,9 @@ contract RibbonStraddleVault is RibbonVaultBase {
      * @return total balance of the vault, including the amounts locked in third party protocols
      */
     function totalBalance() public view override returns (uint256) {
-        // balance of vault in covered call vault PLUS in put selling vault
+        // TODO: FIGURE OUT BALANCE OF VAULT (USDC + VAULT BALANCE IN BASE VAULTS)
         return 0;
     }
+
+    // TODO: ADD MORE RELEVANT GETTERS?
 }

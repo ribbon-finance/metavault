@@ -11,7 +11,6 @@ import {Vault} from "../V2/libraries/Vault.sol";
 import {ShareMath} from "../V2/libraries/ShareMath.sol";
 
 import {IRibbonVault} from "../V2/interfaces/IRibbonVault.sol";
-import {IRibbonOptionsVault} from "../V2/interfaces/IRibbonOptionsVault.sol";
 import {RibbonVaultBase} from "../V2/base/RibbonVaultBase.sol";
 
 contract RibbonStraddleVault is RibbonVaultBase {
@@ -24,6 +23,7 @@ contract RibbonStraddleVault is RibbonVaultBase {
         uint256 vaultFee,
         uint256 round
     );
+
     /************************************************
      *  IMMUTABLES & CONSTANTS
      ***********************************************/
@@ -88,10 +88,10 @@ contract RibbonStraddleVault is RibbonVaultBase {
      * @param shares is the number of shares to withdraw
      */
     function initiateWithdraw(uint128 shares) public override nonReentrant {
-        uint128 sharesPerVault = uint128(uint256(shares).div(2));
-        putSellingVault.initiateWithdraw(sharesPerVault);
-        callSellingVault.initiateWithdraw(sharesPerVault);
-        super.initiateWithdraw(shares);
+        // uint128 sharesPerVault = uint128(uint256(shares).div(2));
+        // putSellingVault.initiateWithdraw(sharesPerVault);
+        // callSellingVault.initiateWithdraw(sharesPerVault);
+        // super.initiateWithdraw(shares);
     }
 
     /**
@@ -99,9 +99,9 @@ contract RibbonStraddleVault is RibbonVaultBase {
      */
     function completeWithdraw() public override nonReentrant {
         // TODO: CONVERT BACK SOME ETH TO USDC IN CASE?
-        putSellingVault.completeWithdraw();
-        callSellingVault.completeWithdraw();
-        super.completeWithdraw();
+        // putSellingVault.completeWithdraw();
+        // callSellingVault.completeWithdraw();
+        // super.completeWithdraw();
     }
 
     /**

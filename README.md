@@ -1,4 +1,4 @@
-# Meta vaults
+# Meta Vaults
 
 Simple idea: build on top of the base **covered call**, **put selling**, **options buying** ribbon vaults to create innovative vaults, and potentially get a **cut of the fees**!
 

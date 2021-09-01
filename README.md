@@ -24,7 +24,7 @@ We built a naive basic [short strangle](https://github.com/ribbon-finance/metava
 
 _Note_: please change the ribbon covered call and put selling v2 [addresses](https://github.com/ribbon-finance/metavault/blob/0c2c5f9e536cfc428e42dad3ec17995896629840/test/helpers/constants.ts#L18) for the test suite if needed :)
 
-[Deployment script](https://github.com/ribbon-finance/metavault/blob/main/scripts/deploy/01_eth_straddle_vault.ts).
+[Deployment script](https://github.com/ribbon-finance/metavault/blob/main/scripts/deploy/01_eth_straddle_vault.ts)
 
 ## Quick Start
 

@@ -18,9 +18,9 @@ The [V2](https://github.com/ribbon-finance/metavault/tree/main/contracts/V2) dir
 
 ## Example Meta Vault
 
-We built a naive basic [short strangle](https://github.com/ribbon-finance/metavault/tree/main/contracts/short-straddle-example) meta vault implementation. Please build on top of it, particularly the [rollVault()](https://github.com/ribbon-finance/metavault/blob/3770a0339d331aeb390b7c2d93b37451533116bd/contracts/short-straddle-example/RibbonStraddleVault.sol#L189) method which is the heart of the code. This is where you deposit into other vaults, take out a loan, or buy an option! 
+We built a naive basic [short strangle](https://github.com/ribbon-finance/metavault/tree/main/contracts/short-straddle-example) meta vault implementation. Please build on top of it, particularly the [rollVault()](https://github.com/ribbon-finance/metavault/blob/3770a0339d331aeb390b7c2d93b37451533116bd/contracts/short-straddle-example/RibbonStraddleVault.sol#L189) method which is the heart of the code. This is where you deposit into other vaults, take out a loan, or buy an option.
 
-The corresponding [test suite](https://github.com/ribbon-finance/metavault/blob/main/test/RibbonStraddleVault.ts). 
+The corresponding [test suite](https://github.com/ribbon-finance/metavault/blob/main/test/RibbonStraddleVault.ts). Most tests are skipped since they rely on the vault locking funds in other smart contracts for yield (such as covered call vault, put selling vault, compound, etc.) which you will implement!
 
 ## Quick Start
 

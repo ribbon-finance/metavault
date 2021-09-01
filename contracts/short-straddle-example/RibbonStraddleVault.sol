@@ -42,11 +42,8 @@ contract RibbonStraddleVault is RibbonVaultBase {
      * @param _weth is the Wrapped Ether contract
      * @param _usdc is the USDC contract
      */
-    constructor(address _weth, address _usdc) {
-        require(_weth != address(0), "!_weth");
+    constructor(address _weth, address _usdc) RibbonVaultBase(_weth) {
         require(_usdc != address(0), "!_usdc");
-
-        WETH = _weth;
         USDC = _usdc;
     }
 
@@ -64,7 +61,7 @@ contract RibbonStraddleVault is RibbonVaultBase {
         address _putSellingVault,
         address _callSellingVault,
         Vault.VaultParams calldata _vaultParams
-    ) internal initializer {
+    ) external initializer {
         baseInitialize(
             _owner,
             _keeper,
@@ -109,11 +106,11 @@ contract RibbonStraddleVault is RibbonVaultBase {
      * @param amount is the amount to withdraw
      */
     function withdrawInstantly(uint256 amount) public override nonReentrant {
-        require(
-            depositReceipts[msg.sender].round == vaultState.round,
-            "Invalid round"
-        );
-        super.withdrawInstantly(amount);
+        // require(
+        //     depositReceipts[msg.sender].round == vaultState.round,
+        //     "Invalid round"
+        // );
+        // super.withdrawInstantly(amount);
     }
 
     /************************************************
@@ -208,9 +205,9 @@ contract RibbonStraddleVault is RibbonVaultBase {
      * @return total balance of the vault, including the amounts locked in third party protocols
      */
     function totalBalance() public view override returns (uint256) {
-        // TODO: FIGURE OUT BALANCE OF VAULT (USDC + VAULT BALANCE IN BASE VAULTS)
-        return 0;
+        return
+            uint256(vaultState.lockedAmount).add(
+                IERC20(vaultParams.asset).balanceOf(address(this))
+            );
     }
-
-    // TODO: ADD MORE RELEVANT GETTERS?
 }

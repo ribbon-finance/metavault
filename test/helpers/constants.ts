@@ -1,0 +1,21 @@
+// *
+// Vault constants
+//
+
+/**
+ * Assets
+ */
+export const WETH_ADDRESS = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+export const WBTC_ADDRESS = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599";
+export const USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+
+export const WBTC_OWNER_ADDRESS = "0x7abE0cE388281d2aCF297Cb089caef3819b13448";
+export const USDC_OWNER_ADDRESS = "0x7abE0cE388281d2aCF297Cb089caef3819b13448";
+
+/**
+ * Ribbon Protocol
+ */
+export const COVERED_CALL_VAULT_ETH =
+  "0xcfCf97F4300aFAa94566696fbF116C4d881FB3bc";
+export const PUT_SELLING_VAULT_ETH =
+  "0xcfCf97F4300aFAa94566696fbF116C4d881FB3bc";

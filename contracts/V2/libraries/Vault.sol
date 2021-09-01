@@ -3,10 +3,12 @@ pragma solidity ^0.7.3;
 
 library Vault {
     struct VaultParams {
-        // Asset used
-        address asset;
         // Token decimals for vault shares
         uint8 decimals;
+        // Asset used
+        address asset;
+        // Underlying asset
+        address underlying;
         // Minimum supply of the vault shares issued, for ETH it's 10**10
         uint56 minimumSupply;
         // Vault cap

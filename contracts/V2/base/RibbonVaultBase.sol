@@ -13,7 +13,7 @@ import {Vault} from "../libraries/Vault.sol";
 import {ShareMath} from "../libraries/ShareMath.sol";
 import {IWETH} from "../interfaces/IWETH.sol";
 
-abstract contract RibbonVaultBase is IRibbonVaultBase, OptionsVaultStorage {
+contract RibbonVaultBase is IRibbonVaultBase, OptionsVaultStorage {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
     using ShareMath for Vault.DepositReceipt;
@@ -36,7 +36,7 @@ abstract contract RibbonVaultBase is IRibbonVaultBase, OptionsVaultStorage {
      *  IMMUTABLES & CONSTANTS
      ***********************************************/
 
-    address public WETH;
+    address public immutable WETH;
 
     uint128 internal constant PLACEHOLDER_UINT = 1;
 
@@ -47,6 +47,16 @@ abstract contract RibbonVaultBase is IRibbonVaultBase, OptionsVaultStorage {
     /************************************************
      *  INITIALIZATION
      ***********************************************/
+
+    /**
+     * @notice Initializes the contract with immutable variable
+     * @param _weth is the Wrapped Ether contract
+     */
+    constructor(address _weth) {
+        require(_weth != address(0), "!_weth");
+
+        WETH = _weth;
+    }
 
     /**
      * @notice Initializes the OptionVault contract with storage variables.

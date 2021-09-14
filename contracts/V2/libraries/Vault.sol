@@ -1,18 +1,37 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.7.3;
+pragma solidity =0.8.4;
 
 library Vault {
+    /************************************************
+     *  IMMUTABLES & CONSTANTS
+     ***********************************************/
+
+    // Fees are 6-decimal places. For example: 20 * 10**6 = 20%
+    uint256 internal constant FEE_MULTIPLIER = 10**6;
+
+    // Placeholder uint value to prevent cold writes
+    uint256 internal constant PLACEHOLDER_UINT = 1;
+
     struct VaultParams {
         // Token decimals for vault shares
         uint8 decimals;
-        // Asset used
+        // Asset used in Theta / Delta Vault
         address asset;
-        // Underlying asset
+        // Underlying asset of the options sold by vault
         address underlying;
         // Minimum supply of the vault shares issued, for ETH it's 10**10
         uint56 minimumSupply;
         // Vault cap
         uint104 cap;
+    }
+
+    struct OptionState {
+        // Option that the vault is shorting / longing in the next cycle
+        address nextOption;
+        // Option that the vault is currently shorting / longing
+        address currentOption;
+        // The timestamp when the `nextOption` can be used by the vault
+        uint32 nextOptionReadyAt;
     }
 
     struct VaultState {
@@ -25,7 +44,7 @@ library Vault {
         // used for calculating performance fee deduction
         uint104 lastLockedAmount;
         // 32 byte slot 2
-        // Stores the total tally of how much of collateral there is
+        // Stores the total tally of how much of `asset` there is
         // to be used to mint rTHETA tokens
         uint128 totalPending;
         // Amount locked for scheduled withdrawals;

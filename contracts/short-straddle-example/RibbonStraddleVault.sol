@@ -49,6 +49,15 @@ contract RibbonStraddleVault is RibbonVaultBase {
 
     /**
      * @notice Initializes the OptionVault contract with storage variables.
+     * @param _owner is the owner of the vault with critical permissions
+     * @param _feeRecipient is the address to recieve vault performance and management fees
+     * @param _managementFee is the management fee pct.
+     * @param _performanceFee is the perfomance fee pct.
+     * @param _tokenName is the name of the token
+     * @param _tokenSymbol is the symbol of the token
+     * @param _putSellingVault is the address of the put selling vault
+     * @param _callSellingVault is the address of the call selling vault
+     * @param _vaultParams is the struct with vault general data
      */
     function initialize(
         address _owner,
@@ -56,8 +65,8 @@ contract RibbonStraddleVault is RibbonVaultBase {
         address _feeRecipient,
         uint256 _managementFee,
         uint256 _performanceFee,
-        string memory tokenName,
-        string memory tokenSymbol,
+        string memory _tokenName,
+        string memory _tokenSymbol,
         address _putSellingVault,
         address _callSellingVault,
         Vault.VaultParams calldata _vaultParams
@@ -68,8 +77,8 @@ contract RibbonStraddleVault is RibbonVaultBase {
             _feeRecipient,
             _managementFee,
             _performanceFee,
-            tokenName,
-            tokenSymbol,
+            _tokenName,
+            _tokenSymbol,
             _vaultParams
         );
 
@@ -120,7 +129,7 @@ contract RibbonStraddleVault is RibbonVaultBase {
     /*
      * @notice Helper function that performs most administrative tasks
      * such as setting next option, minting new shares, getting vault fees, etc.
-     * @return queuedWithdrawAmount is the queued amount for withdrawal
+     * @return lockedBalance is the new balance used to calculate next option purchase size or collateral size
      */
     function _rollVault() internal returns (uint256) {
         (
@@ -135,20 +144,34 @@ contract RibbonStraddleVault is RibbonVaultBase {
                 vaultState
             );
 
+        (
+            uint256 _lockedBalance,
+            uint256 newPricePerShare,
+            uint256 mintShares
+        ) = VaultLifecycle.rollover(
+                totalSupply(),
+                vaultParams.asset,
+                vaultParams.decimals,
+                uint256(vaultState.totalPending),
+                vaultState.queuedWithdrawShares
+            );
+
+        optionState.currentOption = newOption;
+        optionState.nextOption = address(0);
+
         // Finalize the pricePerShare at the end of the round
         uint256 currentRound = vaultState.round;
         roundPricePerShare[currentRound] = newPricePerShare;
 
         // Take management / performance fee from previous round and deduct
-        lockedBalance = lockedBalance.sub(_collectVaultFees(lockedBalance));
+        lockedBalance = _lockedBalance.sub(_collectVaultFees(_lockedBalance));
 
         vaultState.totalPending = 0;
         vaultState.round = uint16(currentRound + 1);
-        vaultState.lockedAmount = uint104(lockedBalance);
 
         _mint(address(this), mintShares);
 
-        return queuedWithdrawAmount;
+        return lockedBalance;
     }
 
     /*
@@ -160,23 +183,42 @@ contract RibbonStraddleVault is RibbonVaultBase {
         internal
         returns (uint256)
     {
-        // TODO: FIGURE OUT FEE COLLECTION
-        // (funds will be both in eth and usdc for covered and put selling vaults respectively)
+        uint256 prevLockedAmount = vaultState.lastLockedAmount;
+        uint256 lockedBalanceSansPending = currentLockedBalance.sub(
+            vaultState.totalPending
+        );
 
-        (uint256 performanceFeeInAsset, , uint256 vaultFee) = VaultLifecycle
-            .getVaultFees(
-                vaultState,
-                currentLockedBalance,
-                performanceFee,
-                managementFee
-            );
+        uint256 vaultFee;
+        uint256 performanceFeeInAsset;
+
+        // Take performance fee and management fee ONLY if difference between
+        // last week and this week's vault deposits, taking into account pending
+        // deposits and withdrawals, is positive. If it is negative, last week's
+        // option expired ITM past breakeven, and the vault took a loss so we
+        // do not collect performance fee for last week
+        if (lockedBalanceSansPending > prevLockedAmount) {
+            performanceFeeInAsset = performanceFee > 0
+                ? lockedBalanceSansPending
+                    .sub(prevLockedAmount)
+                    .mul(performanceFee)
+                    .div(100 * Vault.FEE_MULTIPLIER)
+                : 0;
+            uint256 managementFeeInAsset = managementFee > 0
+                ? currentLockedBalance.mul(managementFee).div(
+                    100 * Vault.FEE_MULTIPLIER
+                )
+                : 0;
+
+            vaultFee = performanceFeeInAsset.add(managementFeeInAsset);
+        }
 
         if (vaultFee > 0) {
             transferAsset(payable(feeRecipient), vaultFee);
             emit CollectVaultFees(
                 performanceFeeInAsset,
                 vaultFee,
-                vaultState.round
+                vaultState.round,
+                feeRecipient
             );
         }
 

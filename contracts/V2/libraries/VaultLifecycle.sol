@@ -5,59 +5,82 @@ pragma experimental ABIEncoderV2;
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Vault} from "./Vault.sol";
+import {ShareMath} from "./ShareMath.sol";
 
 library VaultLifecycle {
     using SafeMath for uint256;
 
+    /**
+     * @notice Calculate the shares to mint, new price per share, and
+      amount of funds to re-allocate as collateral for the new round
+     * @param currentShareSupply is the total supply of shares
+     * @param asset is the address of the vault's asset
+     * @param decimals is the decimals of the asset
+     * @param pendingAmount is the amount of funds pending from recent deposits
+     * @return newLockedAmount is the amount of funds to allocate for the new round
+     * @return newPricePerShare is the price per share of the new round
+     * @return mintShares is the amount of shares to mint from deposits
+     */
     function rollover(
-        uint256 currentSupply,
-        uint256 currentBalance,
-        Vault.VaultParams calldata vaultParams,
-        Vault.VaultState calldata vaultState
+        uint256 currentShareSupply,
+        address asset,
+        uint256 decimals,
+        uint256 pendingAmount,
+        uint256 queuedWithdrawShares
     )
         external
-        pure
+        view
         returns (
             uint256 newLockedAmount,
-            uint256 queuedWithdrawAmount,
             uint256 newPricePerShare,
             uint256 mintShares
         )
     {
-        uint256 pendingAmount = uint256(vaultState.totalPending);
-        uint256 roundStartBalance = currentBalance.sub(pendingAmount);
+        uint256 currentBalance = IERC20(asset).balanceOf(address(this));
 
-        uint256 singleShare = 10**uint256(vaultParams.decimals);
-
-        newPricePerShare = getPPS(
-            currentSupply,
-            roundStartBalance,
-            singleShare
+        newPricePerShare = ShareMath.pricePerShare(
+            currentShareSupply,
+            currentBalance,
+            pendingAmount,
+            decimals
         );
 
         // After closing the short, if the options expire in-the-money
         // vault pricePerShare would go down because vault's asset balance decreased.
         // This ensures that the newly-minted shares do not take on the loss.
-        uint256 _mintShares = pendingAmount.mul(singleShare).div(
-            newPricePerShare
+        uint256 _mintShares = ShareMath.assetToShares(
+            pendingAmount,
+            newPricePerShare,
+            decimals
         );
 
-        uint256 newSupply = currentSupply.add(_mintShares);
+        uint256 newSupply = currentShareSupply.add(_mintShares);
 
-        uint256 queuedAmount = newSupply > 0
-            ? uint256(vaultState.queuedWithdrawShares).mul(currentBalance).div(
-                newSupply
+        uint256 queuedWithdrawAmount = newSupply > 0
+            ? ShareMath.sharesToAsset(
+                queuedWithdrawShares,
+                newPricePerShare,
+                decimals
             )
             : 0;
 
         return (
-            currentBalance.sub(queuedAmount),
-            queuedAmount,
+            currentBalance.sub(queuedWithdrawAmount),
             newPricePerShare,
             _mintShares
         );
     }
 
+    /**
+     * @notice Calculates the performance and management fee for this week's round
+     * @param vaultState is the struct with vault accounting state
+     * @param currentLockedBalance is the amount of funds currently locked in opyn
+     * @param performanceFeePercent is the performance fee pct.
+     * @param managementFeePercent is the management fee pct.
+     * @return performanceFee is the performance fee
+     * @return managementFee is the management fee
+     * @return vaultFee is the total fees
+     */
     function getVaultFees(
         Vault.VaultState storage vaultState,
         uint256 currentLockedBalance,
@@ -95,11 +118,21 @@ library VaultLifecycle {
         }
     }
 
-    function verifyConstructorParams(
+    /**
+     * @notice Verify the constructor params satisfy requirements
+     * @param owner is the owner of the vault with critical permissions
+     * @param feeRecipient is the address to recieve vault performance and management fees
+     * @param performanceFee is the perfomance fee pct.
+     * @param tokenName is the name of the token
+     * @param tokenSymbol is the symbol of the token
+     * @param _vaultParams is the struct with vault general data
+     */
+    function verifyInitializerParams(
         address owner,
         address keeper,
         address feeRecipient,
         uint256 performanceFee,
+        uint256 managementFee,
         string calldata tokenName,
         string calldata tokenSymbol,
         Vault.VaultParams calldata _vaultParams
@@ -107,22 +140,24 @@ library VaultLifecycle {
         require(owner != address(0), "!owner");
         require(keeper != address(0), "!keeper");
         require(feeRecipient != address(0), "!feeRecipient");
-        require(performanceFee < 100 * 10**6, "Invalid performance fee");
+        require(
+            performanceFee < 100 * Vault.FEE_MULTIPLIER,
+            "performanceFee >= 100%"
+        );
+        require(
+            managementFee < 100 * Vault.FEE_MULTIPLIER,
+            "managementFee >= 100%"
+        );
         require(bytes(tokenName).length > 0, "!tokenName");
         require(bytes(tokenSymbol).length > 0, "!tokenSymbol");
 
         require(_vaultParams.asset != address(0), "!asset");
+        require(_vaultParams.underlying != address(0), "!underlying");
         require(_vaultParams.minimumSupply > 0, "!minimumSupply");
         require(_vaultParams.cap > 0, "!cap");
-    }
-
-    function getPPS(
-        uint256 currentSupply,
-        uint256 roundStartBalance,
-        uint256 singleShare
-    ) internal pure returns (uint256 newPricePerShare) {
-        newPricePerShare = currentSupply > 0
-            ? singleShare.mul(roundStartBalance).div(currentSupply)
-            : singleShare;
+        require(
+            _vaultParams.cap > _vaultParams.minimumSupply,
+            "cap has to be higher than minimumSupply"
+        );
     }
 }

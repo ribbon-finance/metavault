@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.7.3;
+pragma solidity =0.8.4;
 pragma experimental ABIEncoderV2;
 
-import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
+import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Vault} from "./Vault.sol";
 import {ShareMath} from "./ShareMath.sol";
@@ -14,19 +14,18 @@ library VaultLifecycle {
      * @notice Calculate the shares to mint, new price per share, and
       amount of funds to re-allocate as collateral for the new round
      * @param currentShareSupply is the total supply of shares
-     * @param asset is the address of the vault's asset
-     * @param decimals is the decimals of the asset
-     * @param pendingAmount is the amount of funds pending from recent deposits
+     * @param currentBalance is the total balance (locked + unlocked funds)
+     * @param vaultParams is the struct with vault general data
+     * @param vaultState is the struct with vault accounting state
      * @return newLockedAmount is the amount of funds to allocate for the new round
      * @return newPricePerShare is the price per share of the new round
      * @return mintShares is the amount of shares to mint from deposits
      */
     function rollover(
         uint256 currentShareSupply,
-        address asset,
-        uint256 decimals,
-        uint256 pendingAmount,
-        uint256 queuedWithdrawShares
+        uint256 currentBalance,
+        Vault.VaultParams calldata vaultParams,
+        Vault.VaultState calldata vaultState
     )
         external
         view
@@ -36,7 +35,8 @@ library VaultLifecycle {
             uint256 mintShares
         )
     {
-        uint256 currentBalance = IERC20(asset).balanceOf(address(this));
+        uint256 pendingAmount = uint256(vaultState.totalPending);
+        uint256 decimals = vaultParams.decimals;
 
         newPricePerShare = ShareMath.pricePerShare(
             currentShareSupply,
@@ -58,7 +58,7 @@ library VaultLifecycle {
 
         uint256 queuedWithdrawAmount = newSupply > 0
             ? ShareMath.sharesToAsset(
-                queuedWithdrawShares,
+                vaultState.queuedWithdrawShares,
                 newPricePerShare,
                 decimals
             )

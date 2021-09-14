@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.7.3;
+pragma solidity =0.8.4;
 pragma experimental ABIEncoderV2;
 
-import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
+import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {VaultLifecycle} from "../V2/libraries/VaultLifecycle.sol";
 import {Vault} from "../V2/libraries/Vault.sol";
 import {ShareMath} from "../V2/libraries/ShareMath.sol";
@@ -17,12 +16,6 @@ contract RibbonStraddleVault is RibbonVaultBase {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
     using ShareMath for Vault.DepositReceipt;
-
-    event CollectVaultFees(
-        uint256 performanceFee,
-        uint256 vaultFee,
-        uint256 round
-    );
 
     /************************************************
      *  IMMUTABLES & CONSTANTS
@@ -93,7 +86,7 @@ contract RibbonStraddleVault is RibbonVaultBase {
      * @notice Initiates a withdrawal that can be processed once the round completes
      * @param shares is the number of shares to withdraw
      */
-    function initiateWithdraw(uint128 shares) public override nonReentrant {
+    function initiateWithdraw(uint256 shares) public override nonReentrant {
         // uint128 sharesPerVault = uint128(uint256(shares).div(2));
         // putSellingVault.initiateWithdraw(sharesPerVault);
         // callSellingVault.initiateWithdraw(sharesPerVault);
@@ -133,8 +126,7 @@ contract RibbonStraddleVault is RibbonVaultBase {
      */
     function _rollVault() internal returns (uint256) {
         (
-            uint256 lockedBalance,
-            uint256 queuedWithdrawAmount,
+            uint256 _lockedBalance,
             uint256 newPricePerShare,
             uint256 mintShares
         ) = VaultLifecycle.rollover(
@@ -144,27 +136,14 @@ contract RibbonStraddleVault is RibbonVaultBase {
                 vaultState
             );
 
-        (
-            uint256 _lockedBalance,
-            uint256 newPricePerShare,
-            uint256 mintShares
-        ) = VaultLifecycle.rollover(
-                totalSupply(),
-                vaultParams.asset,
-                vaultParams.decimals,
-                uint256(vaultState.totalPending),
-                vaultState.queuedWithdrawShares
-            );
-
-        optionState.currentOption = newOption;
-        optionState.nextOption = address(0);
-
         // Finalize the pricePerShare at the end of the round
         uint256 currentRound = vaultState.round;
         roundPricePerShare[currentRound] = newPricePerShare;
 
         // Take management / performance fee from previous round and deduct
-        lockedBalance = _lockedBalance.sub(_collectVaultFees(_lockedBalance));
+        uint256 lockedBalance = _lockedBalance.sub(
+            _collectVaultFees(_lockedBalance)
+        );
 
         vaultState.totalPending = 0;
         vaultState.round = uint16(currentRound + 1);

@@ -798,7 +798,7 @@ function behavesLikeRibbonOptionsVault(params: {
 
         await vault.deposit(params.depositAmount);
 
-        await rollToNextOption();
+        await vault.connect(keeperSigner).rollVault();
 
         await vault.maxRedeem();
 

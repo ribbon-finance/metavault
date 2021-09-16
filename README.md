@@ -8,8 +8,9 @@ Example Vaults:
 1. [Short strangle](https://tinyurl.com/shortya) strategy, which simultaneously deposits your funds into the eth covered call vault and put selling vault
 2. Long strangle strategy, which is a short strangle but buys the options instead of sells. This can be useful if you are just long directional vol or if you are an LP on an AMM (defacto short vol) and want to hedge against large movements
 3. Pseudo [knock-in / knock-out](https://www.investopedia.com/terms/k/knock-inoption.asp) options vault, which deposits into the corresponding delta vault
-4. Use yields from delta neutral basis trading on [lemma.finance](https://medium.com/coinmonks/earning-defi-yield-via-basis-trading-379d1d5e7207) to buy call options on delta vault or directly bid on gnosis
-5. Auto-purchase options from lending returns using delta vaults to gain market exposure (flavor of [Principal protected notes](https://www.investopedia.com/terms/p/principalprotectednote.asp) where instead of ATM call option you buy OTM call option)
+4. Use yields from delta neutral basis trading on [lemma.finance](https://medium.com/coinmonks/earning-defi-yield-via-basis-trading-379d1d5e7207) to buy call options on delta vault, directly bid on gnosis, or buy ATM call options on Hegic!
+5. Auto-purchase options from yield farming (lending or LM), using delta vaults to gain market exposure.
+6. Buy ZCB on [88mph](https://88mph.app/) and use the rest of the funds to deposit into the delta vaults (flavor of [Principal protected notes](https://www.investopedia.com/terms/p/principalprotectednote.asp)s where instead of ATM call option you buy OTM call option). Alternatively you can use [Hegic](https://www.hegic.co/) for ATM call options!
 
 A more comprehensive list can be found in this nice [thread by vadym](https://twitter.com/0x_vadym/status/1422257780891729921).
 

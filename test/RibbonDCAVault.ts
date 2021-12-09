@@ -21,15 +21,15 @@ import { assert } from "./helpers/assertions";
 
 moment.tz.setDefault("UTC");
 
-const gasPrice = parseUnits("1", "gwei");
+const gasPrice = parseUnits("1000", "gwei");
 const FEE_SCALING = BigNumber.from(10).pow(6);
 const WEEKS_PER_YEAR = 52142857;
 
-describe("RibbonStraddleVault", () => {
+describe("RibbonDCAVault", () => {
   behavesLikeRibbonOptionsVault({
-    name: `Ribbon ETH Straddle Vault`,
-    tokenName: "Ribbon ETH Straddle Vault",
-    tokenSymbol: "rETH-STRADDLE",
+    name: `Ribbon ETH DCA Vault (Put)`,
+    tokenName: "Ribbon DCA Theta Vault Put",
+    tokenSymbol: "rETH-DCA-P",
     asset: WETH_ADDRESS,
     assetContractName: "IERC20",
     strikeAsset: USDC_ADDRESS,
@@ -186,7 +186,7 @@ function behavesLikeRibbonOptionsVault(params: {
 
       vault = (
         await deployProxy(
-          "RibbonStraddleVault",
+          "RibbonDCAVault",
           adminSigner,
           initializeArgs,
           deployArgs,
@@ -234,7 +234,7 @@ function behavesLikeRibbonOptionsVault(params: {
 
       time.revertToSnapshotAfterEach(async function () {
         const RibbonThetaVault = await ethers.getContractFactory(
-          "RibbonStraddleVault",
+          "RibbonDCAVault",
           {
             libraries: {
               VaultLifecycle: vaultLifecycleLib.address,
@@ -661,7 +661,7 @@ function behavesLikeRibbonOptionsVault(params: {
         ).to.be.revertedWith("Insufficient balance");
       });
 
-      it.skip("updates the previous deposit receipt", async function () {
+      it("updates the previous deposit receipt", async function () {
         await assetContract
           .connect(userSigner)
           .approve(vault.address, params.depositAmount.mul(2));
@@ -735,7 +735,7 @@ function behavesLikeRibbonOptionsVault(params: {
       });
     });
 
-    describe.skip("#assetBalance", () => {
+    describe("#assetBalance", () => {
       time.revertToSnapshotAfterEach(async function () {
         await depositIntoVault(
           params.collateralAsset,
@@ -757,7 +757,7 @@ function behavesLikeRibbonOptionsVault(params: {
       });
     });
 
-    describe.skip("#maxRedeem", () => {
+    describe("#maxRedeem", () => {
       time.revertToSnapshotAfterEach(async function () {});
 
       it("is able to redeem deposit at new price per share", async function () {
@@ -848,7 +848,7 @@ function behavesLikeRibbonOptionsVault(params: {
       });
     });
 
-    describe.skip("#redeem", () => {
+    describe("#redeem", () => {
       time.revertToSnapshotAfterEach();
 
       it("reverts when 0 passed", async function () {
@@ -857,7 +857,7 @@ function behavesLikeRibbonOptionsVault(params: {
           .approve(vault.address, depositAmount);
         await vault.deposit(depositAmount);
         await vault.connect(keeperSigner).rollVault();
-        await expect(vault.redeem(0)).to.be.revertedWith("!shares");
+        await expect(vault.redeem(0)).to.be.revertedWith("!numShares");
       });
 
       it("reverts when redeeming more than available", async function () {
@@ -916,7 +916,7 @@ function behavesLikeRibbonOptionsVault(params: {
       });
     });
 
-    describe.skip("#withdrawInstantly", () => {
+    describe("#withdrawInstantly", () => {
       time.revertToSnapshotAfterEach();
 
       it("reverts with 0 amount", async function () {
@@ -1008,7 +1008,7 @@ function behavesLikeRibbonOptionsVault(params: {
       });
     });
 
-    describe.skip("#initiateWithdraw", () => {
+    describe("#initiateWithdraw", () => {
       time.revertToSnapshotAfterEach(async () => {});
 
       it("reverts when user initiates withdraws without any deposit", async function () {
@@ -1018,7 +1018,9 @@ function behavesLikeRibbonOptionsVault(params: {
       });
 
       it("reverts when passed 0 shares", async function () {
-        await expect(vault.initiateWithdraw(0)).to.be.revertedWith("!shares");
+        await expect(vault.initiateWithdraw(0)).to.be.revertedWith(
+          "!numShares"
+        );
       });
 
       it("reverts when withdrawing more than unredeemed balance", async function () {
@@ -1189,7 +1191,7 @@ function behavesLikeRibbonOptionsVault(params: {
 
         const tx = await vault.initiateWithdraw(depositAmount);
         const receipt = await tx.wait();
-        assert.isAtMost(receipt.gasUsed.toNumber(), 103700);
+        assert.isAtMost(receipt.gasUsed.toNumber(), 200000);
         // console.log("initiateWithdraw", receipt.gasUsed.toNumber());
       });
     });

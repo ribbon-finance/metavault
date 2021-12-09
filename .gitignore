@@ -1,0 +1,7 @@
+cache
+artifacts
+types
+node_modules
+.env
+.vscode
+coverage

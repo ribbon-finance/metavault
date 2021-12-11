@@ -13,6 +13,12 @@ abstract contract RibbonDCAVaultStorageV1 {
     address public dcaVaultAsset;
     // Path for swaps
     bytes public swapPath;
+    // Dividend per share
+    uint256 public magnifiedDividendPerShare;
+    // Updated whenever the token balance of a user changes
+    mapping(address => int256) public magnifiedDividendCorrections;
+    // Keeps track of users withdrawals from the dca vault
+    mapping(address => uint256) public dcaVaultWithdrawals;
 }
 
 // We are following Compound's method of upgrading new contract implementations

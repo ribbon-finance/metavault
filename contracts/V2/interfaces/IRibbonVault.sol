@@ -2,18 +2,6 @@
 pragma solidity =0.8.4;
 
 interface IRibbonVault {
-    function vaultParams()
-        external
-        view
-        returns (
-            bool isPut,
-            uint8 decimals,
-            address asset,
-            address underlying,
-            uint56 minimumSupply,
-            uint104 cap
-        );
-
     /************************************************
      *  DEPOSIT & WITHDRAWALS
      ***********************************************/
@@ -52,6 +40,23 @@ interface IRibbonVault {
     /************************************************
      *  GETTERS
      ***********************************************/
+
+    function vaultParams()
+        external
+        view
+        returns (
+            bool isPut,
+            uint8 decimals,
+            address asset,
+            address underlying,
+            uint56 minimumSupply,
+            uint104 cap
+        );
+
+    function withdrawals(address account)
+        external
+        view
+        returns (uint16 round, uint128 shares);
 
     /**
      * @notice Returns the underlying balance held on the vault for the account

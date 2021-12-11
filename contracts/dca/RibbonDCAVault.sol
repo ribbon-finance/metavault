@@ -156,6 +156,7 @@ contract RibbonDCAVault is RibbonVaultBase, RibbonDCAVaultStorage {
             uint256(vaultState.queuedWithdrawShares).sub(withdrawalShares)
         );
 
+        // Calculate yield vault shares belonging to the user
         uint256 putSellingVaultShares = withdrawalShares
             .mul(yieldVault.balanceOf(address(this)))
             .div(totalSupply());
@@ -322,10 +323,12 @@ contract RibbonDCAVault is RibbonVaultBase, RibbonDCAVaultStorage {
         vaultState.lastLockedAmount = vaultState.lockedAmount;
         uint256 totalPending = vaultState.totalPending;
         (uint256 lockedBalance, uint256 withdrawnAmount) = _rollVault();
+        // Swap and deposit yield vault profits into the dca vault
         _swapAndDeposit(withdrawnAmount, 0);
 
         vaultState.lockedAmount = uint104(lockedBalance);
 
+        // Deposit pending deposits into the yield vault
         IERC20(vaultParams.asset).safeApprove(
             address(yieldVault),
             totalPending

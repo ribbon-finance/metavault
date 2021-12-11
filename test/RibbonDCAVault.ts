@@ -12,8 +12,10 @@ import {
   USDC_OWNER_ADDRESS,
   UNISWAP_ROUTER,
   UNISWAP_FACTORY,
+  USDC_WETH_PATH,
+  USDC_WETH_PATH_FEES,
 } from "./helpers/constants";
-import { deployProxy, mintToken } from "./helpers/utils";
+import { deployProxy, mintToken, encodePath } from "./helpers/utils";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 const { provider, getContractAt, getContractFactory } = ethers;
@@ -25,6 +27,7 @@ moment.tz.setDefault("UTC");
 const gasPrice = parseUnits("1000", "gwei");
 const FEE_SCALING = BigNumber.from(10).pow(6);
 const WEEKS_PER_YEAR = 52142857;
+const swapPath = encodePath(USDC_WETH_PATH, USDC_WETH_PATH_FEES);
 
 describe("RibbonDCAVault", () => {
   behavesLikeRibbonOptionsVault({
@@ -180,6 +183,7 @@ function behavesLikeRibbonOptionsVault(params: {
         tokenSymbol,
         putSellingVault,
         coveredCallVault,
+        swapPath,
         [tokenDecimals, USDC_ADDRESS, asset, minimumSupply, parseEther("500")],
       ];
 
@@ -279,6 +283,7 @@ function behavesLikeRibbonOptionsVault(params: {
         assert.equal(await vault.dcaVault(), coveredCallVault);
         assert.equal(await vault.yieldVault(), putSellingVault);
         assert.equal(await vault.dcaVaultAsset(), dcaVaultAsset);
+        assert.equal(await vault.swapPath(), swapPath);
       });
 
       it("cannot be initialized twice", async function () {
@@ -293,6 +298,7 @@ function behavesLikeRibbonOptionsVault(params: {
             tokenSymbol,
             putSellingVault,
             coveredCallVault,
+            swapPath,
             [
               tokenDecimals,
               USDC_ADDRESS,
@@ -316,6 +322,7 @@ function behavesLikeRibbonOptionsVault(params: {
             tokenSymbol,
             putSellingVault,
             coveredCallVault,
+            swapPath,
             [
               tokenDecimals,
               USDC_ADDRESS,
@@ -339,6 +346,7 @@ function behavesLikeRibbonOptionsVault(params: {
             tokenSymbol,
             putSellingVault,
             coveredCallVault,
+            swapPath,
             [
               tokenDecimals,
               USDC_ADDRESS,
@@ -362,6 +370,7 @@ function behavesLikeRibbonOptionsVault(params: {
             tokenSymbol,
             putSellingVault,
             coveredCallVault,
+            swapPath,
             [
               tokenDecimals,
               USDC_ADDRESS,
@@ -385,6 +394,7 @@ function behavesLikeRibbonOptionsVault(params: {
             tokenSymbol,
             putSellingVault,
             coveredCallVault,
+            swapPath,
             [tokenDecimals, USDC_ADDRESS, asset, minimumSupply, 0]
           )
         ).to.be.revertedWith("!cap");
@@ -402,6 +412,7 @@ function behavesLikeRibbonOptionsVault(params: {
             tokenSymbol,
             putSellingVault,
             coveredCallVault,
+            swapPath,
             [
               tokenDecimals,
               constants.AddressZero,
@@ -425,6 +436,7 @@ function behavesLikeRibbonOptionsVault(params: {
             tokenSymbol,
             putSellingVault,
             coveredCallVault,
+            swapPath,
             [tokenDecimals, USDC_ADDRESS, asset, 0, parseEther("500")]
           )
         ).to.be.revertedWith("!minimumSupply");
@@ -501,6 +513,27 @@ function behavesLikeRibbonOptionsVault(params: {
       it("changes the fee recipient", async function () {
         await vault.connect(ownerSigner).setFeeRecipient(owner);
         assert.equal(await vault.feeRecipient(), owner);
+      });
+    });
+
+    describe("#setSwapPath", () => {
+      time.revertToSnapshotAfterTest();
+
+      it("reverts when setting invalid swapPath", async function () {
+        await expect(
+          vault.connect(ownerSigner).setSwapPath(constants.HashZero)
+        ).to.be.revertedWith("Path too short");
+      });
+
+      it("reverts when not owner call", async function () {
+        await expect(vault.setSwapPath(swapPath)).to.be.revertedWith(
+          "caller is not the owner"
+        );
+      });
+
+      it("changes the fee swapPath", async function () {
+        await vault.connect(ownerSigner).setSwapPath(swapPath);
+        assert.equal(await vault.swapPath(), swapPath);
       });
     });
 

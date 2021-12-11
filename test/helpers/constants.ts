@@ -25,3 +25,12 @@ export const PUT_SELLING_VAULT_ETH =
  */
 export const UNISWAP_ROUTER = "0xE592427A0AEce92De3Edee1F18E0157C05861564";
 export const UNISWAP_FACTORY = "0x1F98431c8aD98523631AE4a59f267346ea31F984";
+
+export enum FeeAmount {
+  LOW = 500,
+  MEDIUM = 3000,
+  HIGH = 10000,
+}
+
+export const USDC_WETH_PATH = [USDC_ADDRESS, WETH_ADDRESS];
+export const USDC_WETH_PATH_FEES = [FeeAmount.MEDIUM];

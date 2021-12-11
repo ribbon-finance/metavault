@@ -15,6 +15,8 @@ import {IOptionsVault} from "../V2/interfaces/IOptionsVault.sol";
 import {RibbonVaultBase} from "../V2/base/RibbonVaultBase.sol";
 import {RibbonDCAVaultStorage} from "./storage/RibbonDCAVaultStorage.sol";
 
+import "hardhat/console.sol";
+
 contract RibbonDCAVault is RibbonVaultBase, RibbonDCAVaultStorage {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
@@ -76,6 +78,7 @@ contract RibbonDCAVault is RibbonVaultBase, RibbonDCAVaultStorage {
         string memory _tokenSymbol,
         address _putSellingVault,
         address _callSellingVault,
+        bytes calldata _swapPath,
         Vault.VaultParams calldata _vaultParams
     ) external initializer {
         baseInitialize(
@@ -100,6 +103,9 @@ contract RibbonDCAVault is RibbonVaultBase, RibbonDCAVaultStorage {
         dcaVault = IRibbonVault(_callSellingVault);
         (, , dcaVaultAsset, , , ) = IRibbonVault(_callSellingVault)
             .vaultParams();
+        swapPath = _swapPath;
+
+        require(_checkPath(_swapPath), "Invalid swapPath");
     }
 
     /************************************************

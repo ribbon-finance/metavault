@@ -1,9 +1,9 @@
 import { Signer } from "@ethersproject/abstract-signer";
 import hre, { ethers, artifacts } from "hardhat";
 import { increaseTo } from "./time";
-import { USDC_ADDRESS } from "../helpers/constants";
+import { USDC_ADDRESS, FeeAmount } from "../helpers/constants";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { BigNumber, BigNumberish, Contract } from "ethers";
+import { BigNumber, BigNumberish, Contract, utils } from "ethers";
 import { wmul } from "../helpers/math";
 
 const { provider } = ethers;
@@ -72,4 +72,24 @@ export async function mintToken(
     method: "hardhat_stopImpersonatingAccount",
     params: [contractOwner],
   });
+}
+
+const FEE_SIZE = 3;
+
+export function encodePath(path: string[], fees: FeeAmount[]): string {
+  if (path.length != fees.length + 1) {
+    throw new Error("path/fee lengths do not match");
+  }
+
+  let encoded = "0x";
+  for (let i = 0; i < fees.length; i++) {
+    // 20 byte encoding of the address
+    encoded += path[i].slice(2);
+    // 3 byte encoding of the fee
+    encoded += fees[i].toString(16).padStart(2 * FEE_SIZE, "0");
+  }
+  // encode the final token
+  encoded += path[path.length - 1].slice(2);
+
+  return encoded.toLowerCase();
 }

@@ -245,7 +245,7 @@ contract RibbonVaultBase is
      * @param newCap is the new cap for deposits
      */
     function setCap(uint256 newCap) external onlyOwner {
-        require(newCap > 0, "!newCap");
+        require(newCap != 0, "!newCap");
         ShareMath.assertUint104(newCap);
         vaultParams.cap = uint104(newCap);
     }
@@ -259,7 +259,7 @@ contract RibbonVaultBase is
      * @param amount is the amount of `asset` to deposit
      */
     function deposit(uint256 amount) external nonReentrant {
-        require(amount > 0, "!amount");
+        require(amount != 0, "!amount");
 
         _depositFor(amount, msg.sender);
 
@@ -281,7 +281,7 @@ contract RibbonVaultBase is
         external
         nonReentrant
     {
-        require(amount > 0, "!amount");
+        require(amount != 0, "!amount");
         require(creditor != address(0));
 
         _depositFor(amount, creditor);
@@ -300,7 +300,6 @@ contract RibbonVaultBase is
      * @param creditor is the address to receieve the deposit
      */
     function _depositFor(uint256 amount, address creditor) private {
-        uint256 currentRound = vaultState.round;
         uint256 totalWithDepositedAmount = totalBalance().add(amount);
 
         require(totalWithDepositedAmount <= vaultParams.cap, "Exceed cap");
@@ -309,6 +308,7 @@ contract RibbonVaultBase is
             "Insufficient balance"
         );
 
+        uint256 currentRound = vaultState.round;
         emit Deposit(creditor, amount, currentRound);
 
         Vault.DepositReceipt memory depositReceipt = depositReceipts[creditor];
@@ -347,13 +347,13 @@ contract RibbonVaultBase is
      * @param numShares is the number of shares to withdraw
      */
     function initiateWithdraw(uint256 numShares) public virtual nonReentrant {
-        require(numShares > 0, "!numShares");
+        require(numShares != 0, "!numShares");
 
         // We do a max redeem before initiating a withdrawal
         // But we check if they must first have unredeemed shares
         if (
-            depositReceipts[msg.sender].amount > 0 ||
-            depositReceipts[msg.sender].unredeemedShares > 0
+            depositReceipts[msg.sender].amount != 0 ||
+            depositReceipts[msg.sender].unredeemedShares != 0
         ) {
             _redeem(0, true);
         }
@@ -399,7 +399,7 @@ contract RibbonVaultBase is
         uint256 withdrawalRound = withdrawal.round;
 
         // This checks if there is a withdrawal
-        require(withdrawalShares > 0, "Not initiated");
+        require(withdrawalShares != 0, "Not initiated");
 
         require(withdrawalRound < vaultState.round, "Round not closed");
 
@@ -419,7 +419,7 @@ contract RibbonVaultBase is
 
         _burn(address(this), withdrawalShares);
 
-        require(withdrawAmount > 0, "!withdrawAmount");
+        require(withdrawAmount != 0, "!withdrawAmount");
         transferAsset(msg.sender, withdrawAmount);
     }
 
@@ -428,13 +428,12 @@ contract RibbonVaultBase is
      * @param amount is the amount to withdraw
      */
     function withdrawInstantly(uint256 amount) public virtual nonReentrant {
+        require(amount != 0, "!amount");
+
         Vault.DepositReceipt storage depositReceipt = depositReceipts[
             msg.sender
         ];
-
         uint256 currentRound = vaultState.round;
-
-        require(amount > 0, "!amount");
         require(depositReceipt.round == currentRound, "Invalid round");
 
         uint256 receiptAmount = depositReceipt.amount;
@@ -456,7 +455,7 @@ contract RibbonVaultBase is
      * @param numShares is the number of shares to redeem
      */
     function redeem(uint256 numShares) external nonReentrant {
-        require(numShares > 0, "!numShares");
+        require(numShares != 0, "!numShares");
         _redeem(numShares, false);
     }
 
@@ -521,7 +520,7 @@ contract RibbonVaultBase is
      * @param numRounds is the number of rounds to initialize in the map
      */
     function initRounds(uint256 numRounds) external nonReentrant {
-        require(numRounds > 0, "!numRounds");
+        require(numRounds != 0, "!numRounds");
 
         uint256 _round = vaultState.round;
         for (uint256 i = 0; i < numRounds; i++) {

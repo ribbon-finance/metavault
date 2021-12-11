@@ -267,8 +267,8 @@ function behavesLikeRibbonOptionsVault(params: {
         assert.bnEqual(await vault.totalPending(), BigNumber.from(0));
         assert.equal(minimumSupply, params.minimumSupply);
         assert.bnEqual(cap, parseEther("500"));
-        assert.equal(await vault.callSellingVault(), coveredCallVault);
-        assert.equal(await vault.putSellingVault(), putSellingVault);
+        assert.equal(await vault.dcaVault(), coveredCallVault);
+        assert.equal(await vault.yieldVault(), putSellingVault);
       });
 
       it("cannot be initialized twice", async function () {

@@ -12,14 +12,12 @@ import {ShareMath} from "../V2/libraries/ShareMath.sol";
 import {IRibbonVault} from "../V2/interfaces/IRibbonVault.sol";
 import {IOptionsVault} from "../V2/interfaces/IOptionsVault.sol";
 import {RibbonVaultBase} from "../V2/base/RibbonVaultBase.sol";
+import {RibbonDCAVaultStorage} from "./storage/RibbonDCAVaultStorage.sol";
 
-contract RibbonDCAVault is RibbonVaultBase {
+contract RibbonDCAVault is RibbonVaultBase, RibbonDCAVaultStorage {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
     using ShareMath for Vault.DepositReceipt;
-
-    IOptionsVault public putSellingVault;
-    IRibbonVault public callSellingVault;
 
     /************************************************
      *  CONSTRUCTOR & INITIALIZATION
@@ -73,8 +71,8 @@ contract RibbonDCAVault is RibbonVaultBase {
             "!_vaultParams.asset"
         );
 
-        putSellingVault = IOptionsVault(_putSellingVault);
-        callSellingVault = IRibbonVault(_callSellingVault);
+        yieldVault = IOptionsVault(_putSellingVault);
+        dcaVault = IRibbonVault(_callSellingVault);
     }
 
     /**
@@ -106,12 +104,12 @@ contract RibbonDCAVault is RibbonVaultBase {
         );
 
         uint256 putSellingVaultShares = withdrawalShares
-            .mul(putSellingVault.balanceOf(address(this)))
+            .mul(yieldVault.balanceOf(address(this)))
             .div(totalSupply());
         uint256 assetBalance = IERC20(vaultParams.asset).balanceOf(
             address(this)
         );
-        putSellingVault.withdraw(putSellingVaultShares);
+        yieldVault.withdraw(putSellingVaultShares);
         uint256 withdrawAmount = IERC20(vaultParams.asset).balanceOf(
             address(this)
         ) - assetBalance;
@@ -203,10 +201,10 @@ contract RibbonDCAVault is RibbonVaultBase {
         vaultState.lockedAmount = uint104(lockedBalance);
 
         IERC20(vaultParams.asset).safeApprove(
-            address(putSellingVault),
+            address(yieldVault),
             totalPending
         );
-        putSellingVault.deposit(totalPending);
+        yieldVault.deposit(totalPending);
     }
 
     /************************************************

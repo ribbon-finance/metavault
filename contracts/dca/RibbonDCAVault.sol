@@ -13,18 +13,10 @@ import {IRibbonVault} from "../V2/interfaces/IRibbonVault.sol";
 import {IOptionsVault} from "../V2/interfaces/IOptionsVault.sol";
 import {RibbonVaultBase} from "../V2/base/RibbonVaultBase.sol";
 
-import "hardhat/console.sol";
-
 contract RibbonDCAVault is RibbonVaultBase {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
     using ShareMath for Vault.DepositReceipt;
-
-    /************************************************
-     *  IMMUTABLES & CONSTANTS
-     ***********************************************/
-
-    address public immutable USDC;
 
     IOptionsVault public putSellingVault;
     IRibbonVault public callSellingVault;
@@ -36,12 +28,8 @@ contract RibbonDCAVault is RibbonVaultBase {
     /**
      * @notice Initializes the contract with immutable variables
      * @param _weth is the Wrapped Ether contract
-     * @param _usdc is the USDC contract
      */
-    constructor(address _weth, address _usdc) RibbonVaultBase(_weth) {
-        require(_usdc != address(0), "!_usdc");
-        USDC = _usdc;
-    }
+    constructor(address _weth) RibbonVaultBase(_weth) {}
 
     /**
      * @notice Initializes the OptionVault contract with storage variables.

@@ -182,7 +182,7 @@ function behavesLikeRibbonOptionsVault(params: {
         [tokenDecimals, USDC_ADDRESS, asset, minimumSupply, parseEther("500")],
       ];
 
-      const deployArgs = [WETH_ADDRESS, USDC_ADDRESS];
+      const deployArgs = [WETH_ADDRESS];
 
       vault = (
         await deployProxy(
@@ -241,7 +241,7 @@ function behavesLikeRibbonOptionsVault(params: {
             },
           }
         );
-        testVault = await RibbonThetaVault.deploy(WETH_ADDRESS, USDC_ADDRESS);
+        testVault = await RibbonThetaVault.deploy(WETH_ADDRESS);
       });
 
       it("initializes with correct values", async function () {
@@ -264,7 +264,6 @@ function behavesLikeRibbonOptionsVault(params: {
         assert.equal(assetFromContract, collateralAsset);
         assert.equal(underlying, asset);
         assert.equal(await vault.WETH(), WETH_ADDRESS);
-        assert.equal(await vault.USDC(), USDC_ADDRESS);
         assert.bnEqual(await vault.totalPending(), BigNumber.from(0));
         assert.equal(minimumSupply, params.minimumSupply);
         assert.bnEqual(cap, parseEther("500"));

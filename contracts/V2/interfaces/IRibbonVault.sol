@@ -1,8 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.4;
-pragma experimental ABIEncoderV2;
 
-contract IRibbonVault {
+interface IRibbonVault {
+    function vaultParams()
+        external
+        view
+        returns (
+            bool isPut,
+            uint8 decimals,
+            address asset,
+            address underlying,
+            uint56 minimumSupply,
+            uint104 cap
+        );
+
     /************************************************
      *  DEPOSIT & WITHDRAWALS
      ***********************************************/
@@ -11,7 +22,7 @@ contract IRibbonVault {
      * @notice Deposits the `asset` from msg.sender.
      * @param amount is the amount of `asset` to deposit
      */
-    function deposit(uint256 amount) external virtual {}
+    function deposit(uint256 amount) external;
 
     /**
      * @notice Deposits the `asset` from msg.sender added to `creditor`'s deposit.
@@ -19,24 +30,24 @@ contract IRibbonVault {
      * @param amount is the amount of `asset` to deposit
      * @param creditor is the address that can claim/withdraw deposited amount
      */
-    function depositFor(uint256 amount, address creditor) external virtual {}
+    function depositFor(uint256 amount, address creditor) external;
 
     /**
      * @notice Initiates a withdrawal that can be processed once the round completes
      * @param shares is the number of shares to withdraw
      */
-    function initiateWithdraw(uint128 shares) external virtual {}
+    function initiateWithdraw(uint128 shares) external;
 
     /**
      * @notice Completes a scheduled withdrawal from a past round. Uses finalized pps for the round
      */
-    function completeWithdraw() external virtual {}
+    function completeWithdraw() external;
 
     /**
      * @notice Withdraws the assets on the vault using the outstanding `DepositReceipt.amount`
      * @param amount is the amount to withdraw
      */
-    function withdrawInstantly(uint256 amount) external virtual {}
+    function withdrawInstantly(uint256 amount) external;
 
     /************************************************
      *  GETTERS
@@ -49,16 +60,14 @@ contract IRibbonVault {
     function accountVaultBalance(address account)
         external
         view
-        virtual
-        returns (uint256)
-    {}
+        returns (uint256);
 
     /**
      * @notice Getter for returning the account's share balance including unredeemed shares
      * @param account is the account to lookup share balance for
      * @return the share balance
      */
-    function shares(address account) public view virtual returns (uint256) {}
+    function shares(address account) external view returns (uint256);
 
     /**
      * @notice Getter for returning the account's share balance split between account and vault holdings
@@ -67,29 +76,27 @@ contract IRibbonVault {
      * @return heldByVault is the shares held on the vault (unredeemedShares)
      */
     function shareBalances(address account)
-        public
+        external
         view
-        virtual
-        returns (uint256 heldByAccount, uint256 heldByVault)
-    {}
+        returns (uint256 heldByAccount, uint256 heldByVault);
 
     /**
      * @notice The price of a unit of share denominated in the `collateral`
      */
-    function pricePerShare() external view virtual returns (uint256) {}
+    function pricePerShare() external view returns (uint256);
 
     /**
      * @notice Returns the token decimals
      */
-    function decimals() public view virtual returns (uint8) {}
+    function decimals() external view returns (uint8);
 
-    function cap() external view virtual returns (uint256) {}
+    function cap() external view returns (uint256);
 
-    function totalPending() external view virtual returns (uint256) {}
+    function totalPending() external view returns (uint256);
 
     /**
      * @notice Returns the vault's total balance, including the amounts locked into a short position
      * @return total balance of the vault, including the amounts locked in third party protocols
      */
-    function totalBalance() external view virtual returns (uint256) {}
+    function totalBalance() external view returns (uint256);
 }

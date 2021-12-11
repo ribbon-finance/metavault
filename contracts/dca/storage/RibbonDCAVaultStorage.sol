@@ -9,6 +9,10 @@ abstract contract RibbonDCAVaultStorageV1 {
     IOptionsVault public yieldVault;
     // Ribbon V2 vault to DCA accrued yield into
     IRibbonVault public dcaVault;
+    // The underlying asset of the dcaVault
+    address public dcaVaultAsset;
+    // Path for swaps
+    bytes public swapPath;
 }
 
 // We are following Compound's method of upgrading new contract implementations

@@ -10,5 +10,14 @@ interface IOptionsVault {
 
     function balanceOf(address user) external returns (uint256);
 
+    function totalSupply() external returns (uint256);
+
     function instantWithdrawalFee() external view returns (uint256);
+
+    function maxWithdrawableShares() external view returns (uint256);
+
+    function accountVaultBalance(address account)
+        external
+        view
+        returns (uint256);
 }

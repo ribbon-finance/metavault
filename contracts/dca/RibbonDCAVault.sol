@@ -3,6 +3,7 @@ pragma solidity =0.8.4;
 pragma experimental ABIEncoderV2;
 
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {VaultLifecycle} from "../V2/libraries/VaultLifecycle.sol";
@@ -20,14 +21,38 @@ contract RibbonDCAVault is RibbonVaultBase, RibbonDCAVaultStorage {
     using ShareMath for Vault.DepositReceipt;
 
     /************************************************
+     *  IMMUTABLES & CONSTANTS
+     ***********************************************/
+
+    // UNISWAP_ROUTER is the contract address of UniswapV3 Router which handles swaps
+    // https://github.com/Uniswap/v3-periphery/blob/main/contracts/interfaces/ISwapRouter.sol
+    address public immutable UNISWAP_ROUTER;
+
+    // UNISWAP_FACTORY is the contract address of UniswapV3 Factory which stores pool information
+    // https://github.com/Uniswap/v3-core/blob/main/contracts/interfaces/IUniswapV3Factory.sol
+    address public immutable UNISWAP_FACTORY;
+
+    /************************************************
      *  CONSTRUCTOR & INITIALIZATION
      ***********************************************/
 
     /**
      * @notice Initializes the contract with immutable variables
      * @param _weth is the Wrapped Ether contract
+     * @param _uniswapRouter is the contract address for UniswapV3 router which handles swaps
+     * @param _uniswapFactory is the contract address for UniswapV3 factory
      */
-    constructor(address _weth) RibbonVaultBase(_weth) {}
+    constructor(
+        address _weth,
+        address _uniswapRouter,
+        address _uniswapFactory
+    ) RibbonVaultBase(_weth) {
+        require(_uniswapRouter != address(0), "!_uniswapRouter");
+        require(_uniswapFactory != address(0), "!_uniswapFactory");
+
+        UNISWAP_ROUTER = _uniswapRouter;
+        UNISWAP_FACTORY = _uniswapFactory;
+    }
 
     /**
      * @notice Initializes the OptionVault contract with storage variables.
@@ -73,7 +98,30 @@ contract RibbonDCAVault is RibbonVaultBase, RibbonDCAVaultStorage {
 
         yieldVault = IOptionsVault(_putSellingVault);
         dcaVault = IRibbonVault(_callSellingVault);
+        (, , dcaVaultAsset, , , ) = IRibbonVault(_callSellingVault)
+            .vaultParams();
     }
+
+    /************************************************
+     *  SETTERS
+     ***********************************************/
+
+    /**
+     * @notice Sets a new path for swaps
+     * @param newSwapPath is the new path
+     */
+    function setSwapPath(bytes calldata newSwapPath)
+        external
+        onlyOwner
+        nonReentrant
+    {
+        require(_checkPath(newSwapPath), "Invalid swapPath");
+        swapPath = newSwapPath;
+    }
+
+    /************************************************
+     *  VAULT OPERATIONS
+     ***********************************************/
 
     /**
      * @notice Initiates a withdrawal that can be processed once the round completes
@@ -132,13 +180,18 @@ contract RibbonDCAVault is RibbonVaultBase, RibbonDCAVaultStorage {
      * @return lockedBalance is the new balance used to calculate next option purchase size or collateral size
      */
     function _rollVault() internal returns (uint256) {
+        uint256 accountVaultBalance = yieldVault.accountVaultBalance(
+            address(this)
+        );
         (
             uint256 _lockedBalance,
             uint256 newPricePerShare,
             uint256 mintShares
         ) = VaultLifecycle.rollover(
                 totalSupply(),
-                totalBalance(),
+                accountVaultBalance.add(
+                    IERC20(vaultParams.asset).balanceOf(address(this))
+                ),
                 vaultParams,
                 vaultState
             );
@@ -190,6 +243,41 @@ contract RibbonDCAVault is RibbonVaultBase, RibbonDCAVaultStorage {
         return vaultFee;
     }
 
+    function _withdrawProfits(
+        uint256 accountVaultBalance,
+        uint256 lastLockedAmount
+    ) internal returns (uint256) {
+        if (accountVaultBalance <= lastLockedAmount) {
+            return 0;
+        }
+        uint256 withdrawShares = (accountVaultBalance.sub(lastLockedAmount))
+            .mul(yieldVault.balanceOf(address(this)))
+            .div(yieldVault.totalSupply());
+        uint256 withdrawableShares = Math.min(
+            withdrawShares,
+            yieldVault.maxWithdrawableShares()
+        );
+        if (withdrawableShares == 0) {
+            return 0;
+        }
+        uint256 assetBalance = IERC20(vaultParams.asset).balanceOf(
+            address(this)
+        );
+        yieldVault.withdraw(withdrawableShares);
+        uint256 withdrawAmount = IERC20(vaultParams.asset).balanceOf(
+            address(this)
+        ) - assetBalance;
+        return withdrawAmount;
+    }
+
+    function _swapAndDeposit(uint256 withdrawAmount) internal {
+        IERC20(vaultParams.asset).safeApprove(
+            address(dcaVault),
+            withdrawAmount
+        );
+        dcaVault.deposit(withdrawAmount);
+    }
+
     /**
      * @notice Rolls the vault's funds into a new position.
      */
@@ -219,6 +307,25 @@ contract RibbonDCAVault is RibbonVaultBase, RibbonDCAVaultStorage {
         return
             uint256(vaultState.lockedAmount).add(
                 IERC20(vaultParams.asset).balanceOf(address(this))
+            );
+    }
+
+    /************************************************
+     *  HELPERS
+     ***********************************************/
+
+    /**
+     * @notice Helper to check whether swap path goes from the yieldVaults underlying asset to the dcaVaults underlying asset
+     * @param swapPath is the swap path e.g. encodePacked(tokenIn, poolFee, tokenOut)
+     * @return boolean whether the path is valid
+     */
+    function _checkPath(bytes calldata swapPath) internal view returns (bool) {
+        return
+            VaultLifecycle.checkPath(
+                swapPath,
+                vaultParams.asset,
+                dcaVaultAsset,
+                UNISWAP_FACTORY
             );
     }
 }

@@ -15,8 +15,6 @@ import {IOptionsVault} from "../V2/interfaces/IOptionsVault.sol";
 import {RibbonVaultBase} from "../V2/base/RibbonVaultBase.sol";
 import {RibbonDCAVaultStorage} from "./storage/RibbonDCAVaultStorage.sol";
 
-import "hardhat/console.sol";
-
 contract RibbonDCAVault is RibbonVaultBase, RibbonDCAVaultStorage {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
@@ -66,6 +64,7 @@ contract RibbonDCAVault is RibbonVaultBase, RibbonDCAVaultStorage {
      * @param _tokenSymbol is the symbol of the token
      * @param _putSellingVault is the address of the put selling vault
      * @param _callSellingVault is the address of the call selling vault
+     * @param _swapPath is the path for swapping
      * @param _vaultParams is the struct with vault general data
      */
     function initialize(
@@ -184,10 +183,11 @@ contract RibbonDCAVault is RibbonVaultBase, RibbonDCAVaultStorage {
      * @notice Helper function that performs most administrative tasks
      * such as setting next option, minting new shares, getting vault fees, etc.
      * @return lockedBalance is the new balance used to calculate next option purchase size or collateral size
+     * @return withdrawnAmount amount of profits withdrawn from the vault to DCA
      */
-    function _rollVault() internal returns (uint256) {
-        uint256 accountVaultBalance = yieldVault.accountVaultBalance(
-            address(this)
+    function _rollVault() internal returns (uint256, uint256) {
+        (uint256 accountVaultBalance, ) = yieldVault.withdrawAmountWithShares(
+            yieldVault.balanceOf(address(this))
         );
         (
             uint256 _lockedBalance,
@@ -216,7 +216,13 @@ contract RibbonDCAVault is RibbonVaultBase, RibbonDCAVaultStorage {
 
         _mint(address(this), mintShares);
 
-        return lockedBalance;
+        // Withdraw profits from yield vault
+        uint256 withdrawnAmount = _withdrawProfits(
+            accountVaultBalance,
+            vaultState.lastLockedAmount
+        );
+
+        return (lockedBalance, withdrawnAmount);
     }
 
     /*
@@ -249,39 +255,64 @@ contract RibbonDCAVault is RibbonVaultBase, RibbonDCAVaultStorage {
         return vaultFee;
     }
 
+    /*
+     * @notice Withdraws any profits from the yield vault
+     * @param accountVaultBalance The current balance in the vault
+     * @param lastLockedAmount Amount that was locked in the yield vault in the previous round
+     * @return withdrawnAmount Amount of the asset withdrawn from the yield vault
+     */
     function _withdrawProfits(
         uint256 accountVaultBalance,
         uint256 lastLockedAmount
-    ) internal returns (uint256) {
-        if (accountVaultBalance <= lastLockedAmount) {
-            return 0;
+    ) internal returns (uint256 withdrawnAmount) {
+        if (accountVaultBalance > lastLockedAmount) {
+            // Calculate yield vault profit in terms of shares
+            uint256 withdrawShares = (accountVaultBalance.sub(lastLockedAmount))
+                .mul(yieldVault.balanceOf(address(this)))
+                .div(yieldVault.totalSupply());
+            uint256 withdrawableShares = Math.min(
+                withdrawShares,
+                yieldVault.maxWithdrawableShares()
+            );
+            if (withdrawableShares > 0) {
+                uint256 assetBalance = IERC20(vaultParams.asset).balanceOf(
+                    address(this)
+                );
+                // Withdraw shares from the yield vault
+                yieldVault.withdraw(withdrawableShares);
+                withdrawnAmount =
+                    IERC20(vaultParams.asset).balanceOf(address(this)) -
+                    assetBalance;
+            }
         }
-        uint256 withdrawShares = (accountVaultBalance.sub(lastLockedAmount))
-            .mul(yieldVault.balanceOf(address(this)))
-            .div(yieldVault.totalSupply());
-        uint256 withdrawableShares = Math.min(
-            withdrawShares,
-            yieldVault.maxWithdrawableShares()
-        );
-        if (withdrawableShares == 0) {
-            return 0;
-        }
-        uint256 assetBalance = IERC20(vaultParams.asset).balanceOf(
-            address(this)
-        );
-        yieldVault.withdraw(withdrawableShares);
-        uint256 withdrawAmount = IERC20(vaultParams.asset).balanceOf(
-            address(this)
-        ) - assetBalance;
-        return withdrawAmount;
     }
 
-    function _swapAndDeposit(uint256 withdrawAmount) internal {
-        IERC20(vaultParams.asset).safeApprove(
-            address(dcaVault),
-            withdrawAmount
+    /*
+     * @notice Swaps profits and deposits into the dca vault
+     * @param withdrawnAmount Amount of the asset withdrawn from the yield vault
+     * @param minAmountOut Amount to receive after swapping the withdrawn amount
+     * @return receivedAmount Amount received
+     */
+    function _swapAndDeposit(uint256 withdrawnAmount, uint256 minAmountOut)
+        internal
+        returns (uint256 receivedAmount)
+    {
+        // Swap asset to the dca vault asset
+        receivedAmount = VaultLifecycle.swap(
+            vaultParams.asset,
+            withdrawnAmount,
+            minAmountOut,
+            UNISWAP_ROUTER,
+            swapPath
         );
-        dcaVault.deposit(withdrawAmount);
+        if (receivedAmount > 0) {
+            // Deposit the dca vault asset into the dca vault
+            IERC20(dcaVaultAsset).safeApprove(
+                address(dcaVault),
+                receivedAmount
+            );
+            dcaVault.deposit(receivedAmount);
+        }
     }
 
     /**
@@ -290,7 +321,8 @@ contract RibbonDCAVault is RibbonVaultBase, RibbonDCAVaultStorage {
     function rollVault() external override onlyKeeper nonReentrant {
         vaultState.lastLockedAmount = vaultState.lockedAmount;
         uint256 totalPending = vaultState.totalPending;
-        uint256 lockedBalance = _rollVault();
+        (uint256 lockedBalance, uint256 withdrawnAmount) = _rollVault();
+        _swapAndDeposit(withdrawnAmount, 0);
 
         vaultState.lockedAmount = uint104(lockedBalance);
 

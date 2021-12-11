@@ -20,4 +20,9 @@ interface IOptionsVault {
         external
         view
         returns (uint256);
+
+    function withdrawAmountWithShares(uint256 share)
+        external
+        view
+        returns (uint256 amountAfterFee, uint256 feeAmount);
 }

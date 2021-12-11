@@ -136,20 +136,20 @@ library VaultLifecycle {
      * @param minAmountOut is the minimum acceptable amount of tokenOut received from swap
      * @param router is the contract address of UniswapV3 router
      * @param swapPath is the swap path e.g. encodePacked(tokenIn, poolFee, tokenOut)
+     * @return amountOut is the amount of tokenOut received from the swap
      */
     function swap(
         address tokenIn,
+        uint256 amount,
         uint256 minAmountOut,
         address router,
         bytes calldata swapPath
-    ) external {
-        uint256 balance = IERC20(tokenIn).balanceOf(address(this));
-
-        if (balance > 0) {
-            UniswapRouter.swap(
+    ) external returns (uint256 amountOut) {
+        if (amount > 0) {
+            amountOut = UniswapRouter.swap(
                 address(this),
                 tokenIn,
-                balance,
+                amount,
                 minAmountOut,
                 router,
                 swapPath

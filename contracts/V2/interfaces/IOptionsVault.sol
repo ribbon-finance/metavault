@@ -9,4 +9,6 @@ interface IOptionsVault {
     function asset() external returns (address);
 
     function balanceOf(address user) external returns (uint256);
+
+    function instantWithdrawalFee() external view returns (uint256);
 }

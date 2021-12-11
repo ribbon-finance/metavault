@@ -95,17 +95,45 @@ contract RibbonDCAVault is RibbonVaultBase {
      */
     function initiateWithdraw(uint256 shares) public override {
         super.initiateWithdraw(shares);
-        uint256 putSellingVaultShares = shares
-            .mul(putSellingVault.balanceOf(address(this)))
-            .div(totalSupply());
-        putSellingVault.withdraw(putSellingVaultShares);
     }
 
     /**
      * @notice Completes a scheduled withdrawal from a past round. Uses finalized pps for the round
      */
     function completeWithdraw() public override {
-        super.completeWithdraw();
+        Vault.Withdrawal storage withdrawal = withdrawals[msg.sender];
+
+        uint256 withdrawalShares = withdrawal.shares;
+        uint256 withdrawalRound = withdrawal.round;
+
+        // This checks if there is a withdrawal
+        require(withdrawalShares > 0, "Not initiated");
+
+        require(withdrawalRound < vaultState.round, "Round not closed");
+
+        // We leave the round number as non-zero to save on gas for subsequent writes
+        withdrawals[msg.sender].shares = 0;
+        vaultState.queuedWithdrawShares = uint128(
+            uint256(vaultState.queuedWithdrawShares).sub(withdrawalShares)
+        );
+
+        uint256 putSellingVaultShares = withdrawalShares
+            .mul(putSellingVault.balanceOf(address(this)))
+            .div(totalSupply());
+        uint256 assetBalance = IERC20(vaultParams.asset).balanceOf(
+            address(this)
+        );
+        putSellingVault.withdraw(putSellingVaultShares);
+        uint256 withdrawAmount = IERC20(vaultParams.asset).balanceOf(
+            address(this)
+        ) - assetBalance;
+
+        emit Withdraw(msg.sender, withdrawAmount, withdrawalShares);
+
+        _burn(address(this), withdrawalShares);
+
+        require(withdrawAmount > 0, "!withdrawAmount");
+        transferAsset(msg.sender, withdrawAmount);
     }
 
     /************************************************
@@ -180,14 +208,12 @@ contract RibbonDCAVault is RibbonVaultBase {
      * @notice Rolls the vault's funds into a new position.
      */
     function rollVault() external override onlyKeeper nonReentrant {
+        vaultState.lastLockedAmount = vaultState.lockedAmount;
         uint256 totalPending = vaultState.totalPending;
         uint256 lockedBalance = _rollVault();
 
         vaultState.lockedAmount = uint104(lockedBalance);
 
-        // TODO: REQUIRE ROLLING BEFORE UNDERLYING VAULTS
-        // TODO: CONVERT SOME USDC TO ETH FOR COVERED CALL VAULT (using uni / sushi / etc)
-        // TODO: DEPOSIT NEW FUNDS INTO VAULTS
         IERC20(vaultParams.asset).safeApprove(
             address(putSellingVault),
             totalPending

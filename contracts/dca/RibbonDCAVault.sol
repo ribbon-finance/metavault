@@ -30,12 +30,10 @@ contract RibbonDCAVault is RibbonVaultBase, RibbonDCAVaultStorage {
      *  IMMUTABLES & CONSTANTS
      ***********************************************/
 
-    // UNISWAP_ROUTER is the contract address of UniswapV3 Router which handles swaps
-    // https://github.com/Uniswap/v3-periphery/blob/main/contracts/interfaces/ISwapRouter.sol
+    // Uniswap v3 router
     address public immutable UNISWAP_ROUTER;
 
-    // UNISWAP_FACTORY is the contract address of UniswapV3 Factory which stores pool information
-    // https://github.com/Uniswap/v3-core/blob/main/contracts/interfaces/IUniswapV3Factory.sol
+    // Uniswap v3 factory
     address public immutable UNISWAP_FACTORY;
 
     // The precision for distributing tokens to share holders

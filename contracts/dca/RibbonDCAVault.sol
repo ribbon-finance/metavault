@@ -161,6 +161,7 @@ contract RibbonDCAVault is RibbonVaultBase, RibbonDCAVaultStorage {
             dcaVault.initiateWithdraw(uint128(dcaWithdrawShares));
             dcaVaultWithdrawals[msg.sender] = dcaVaultWithdrawals[msg.sender]
                 .add(dcaWithdrawShares);
+            // TODO: Check if assets can be instantly withdrawn
         }
 
         // This caches the `round` variable used in shareBalances
@@ -245,6 +246,7 @@ contract RibbonDCAVault is RibbonVaultBase, RibbonDCAVaultStorage {
         uint256 totalPending = vaultState.totalPending;
         (uint256 lockedBalance, uint256 withdrawnAmount) = _rollVault();
         // Swap and deposit yield vault profits into the dca vault
+        // TODO: Pass minAmountOut as a param to rollVault()
         _swapAndDeposit(withdrawnAmount, 0);
 
         vaultState.lockedAmount = uint104(lockedBalance);

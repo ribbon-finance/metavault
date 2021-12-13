@@ -4,6 +4,7 @@ pragma experimental ABIEncoderV2;
 
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IRibbonVault} from "../interfaces/IRibbonVault.sol";
 import {Vault} from "./Vault.sol";
 import {ShareMath} from "./ShareMath.sol";
 import {UniswapRouter} from "./UniswapRouter.sol";
@@ -128,6 +129,33 @@ library VaultLifecycle {
         }
 
         return (_performanceFeeInAsset, _managementFeeInAsset, _vaultFee);
+    }
+
+    function initiateWithdrawal(IRibbonVault vault, uint256 shares)
+        external
+        returns (bool withdrawn, uint256 amount)
+    {
+        if (shares != 0) {
+            (, uint8 _decimals, , , , ) = vault.vaultParams();
+            (uint16 round, , , uint256 totalPending, ) = vault.vaultState();
+            uint256 assetPerShare = ShareMath.pricePerShare(
+                vault.totalSupply(),
+                vault.totalBalance(),
+                totalPending,
+                _decimals
+            );
+            amount = ShareMath.sharesToAsset(shares, assetPerShare, _decimals);
+            (uint16 depositRound, uint104 depositAmount, ) = vault
+                .depositReceipts(address(this));
+            if (
+                round == depositRound && amount != 0 && depositAmount >= amount
+            ) {
+                vault.withdrawInstantly(amount);
+                withdrawn = true;
+            } else {
+                vault.initiateWithdraw(uint128(shares));
+            }
+        }
     }
 
     /**
